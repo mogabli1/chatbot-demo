@@ -14,7 +14,8 @@
 - Uses environment variables for API keys and Sheet credentials.
 
 ## 🌐 GitHub Status
-- **Repo:** `https://github.com/mogabli1/-donate-platform.git`
+- **Repo:** `https://github.com/mogabli1/chatbot-demo.git`
 - **Branch:** `master`
-- **Sync Note:** Local environment initialized, awaiting final production push.
+- **Sync Note:** Final security version with hidden 5-click trigger live on Vercel.
+
 
