@@ -10,7 +10,6 @@
 
   /* SETUP SCREEN */
   #setup-screen { display: none; width: 100%; max-width: 460px; background: white; border-radius: 20px; padding: 28px 24px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); }
-  body.admin-mode #setup-screen { display: block !important; }
   
   .setup-badge { display: inline-flex; align-items: center; gap: 6px; background: #EEF2FF; color: #4F46E5; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-bottom: 14px; }
   .setup-title { font-size: 22px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; }
@@ -193,15 +192,22 @@ let isSetupMode = window.location.search.includes('setup=true');
 
 function applyVisibility() {
   const adminLink = document.getElementById('admin-link');
+  const chatScreen = document.getElementById('chat-screen');
+  const setupScreen = document.getElementById('setup-screen');
+
   if (isSetupMode) {
     document.body.classList.add('admin-mode');
     if (adminLink) {
       adminLink.style.display = 'block';
       adminLink.onclick = resetBot;
     }
+    // Show setup ONLY if chat is not active
+    if (chatScreen.style.display !== 'block') {
+      setupScreen.style.display = 'block';
+    }
   } else {
     document.body.classList.remove('admin-mode');
-    document.getElementById('setup-screen').style.display = 'none';
+    setupScreen.style.display = 'none';
     if (adminLink) {
       adminLink.style.display = 'none';
       adminLink.onclick = null;
