@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart Business Assistant</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 1rem; }
+
+  /* SETUP SCREEN */
+  #setup-screen { display: none; width: 100%; max-width: 460px; background: white; border-radius: 20px; padding: 28px 24px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); }
+  body.admin-mode #setup-screen { display: block !important; }
+  
+  .setup-badge { display: inline-flex; align-items: center; gap: 6px; background: #EEF2FF; color: #4F46E5; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-bottom: 14px; }
+  .setup-title { font-size: 22px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; }
+  .setup-sub { font-size: 13px; color: #666; margin-bottom: 22px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: #444; margin-bottom: 5px; }
+  .field label .req { color: #EF4444; margin-left: 2px; }
+  .field input, .field textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 13px; outline: none; transition: border 0.2s; font-family: inherit; }
+  .field input:focus, .field textarea:focus { border-color: #4F46E5; }
+  .field input.required-field:focus { border-color: #4F46E5; }
+  .field textarea { resize: vertical; min-height: 80px; }
+  .field .hint { font-size: 11px; color: #999; margin-top: 4px; }
+  .field .hint.green { color: #059669; font-weight: 500; }
+  .divider { border: none; border-top: 1px solid #f0f0f0; margin: 18px 0; }
+  .optional-label { font-size: 11px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
+  .color-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .color-opt { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: all 0.2s; }
+  .color-opt.selected { border-color: #1a1a1a; transform: scale(1.15); }
+  #start-btn { width: 100%; padding: 13px; background: #4F46E5; color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
+  #start-btn:hover { background: #3730a3; }
+
+  /* CHAT SCREEN */
+  #chat-screen { display: none; width: 100%; max-width: 460px; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.1); }
+  .chat-header { padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+  .chat-logo { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .chat-header-text { flex: 1; }
+  .chat-title { font-weight: 700; font-size: 15px; color: #fff; }
+  .chat-sub { font-size: 11px; color: rgba(255,255,255,0.75); margin-top: 1px; }
+  .online-dot { width: 8px; height: 8px; background: #4ADE80; border-radius: 50%; display: inline-block; margin-right: 4px; }
+  .powered-badge { font-size: 10px; color: rgba(255,255,255,0.85); background: rgba(0,0,0,0.2); padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+
+  /* CHAT BOX */
+  #chat-box { height: 360px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: #f8f9ff; }
+  .msg-row { display: flex; gap: 8px; align-items: flex-end; }
+  .msg-row.user { justify-content: flex-end; }
+  .msg-av { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; color: white; margin-bottom: 2px; }
+  .bubble { padding: 10px 14px; font-size: 13px; max-width: 80%; line-height: 1.6; border-radius: 18px 18px 18px 4px; background: white; border: 1px solid #e8e8f0; color: #333; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+  .bubble.user { border-radius: 18px 18px 4px 18px; color: white; border: none; box-shadow: none; }
+  .bubble .timestamp { font-size: 10px; color: #aaa; margin-top: 4px; }
+  .bubble.user .timestamp { color: rgba(255,255,255,0.65); }
+
+  /* INPUT ROW */
+  .input-area { padding: 12px; border-top: 1px solid #eee; background: white; }
+  .input-row { display: flex; gap: 8px; align-items: center; background: #f5f5f5; border-radius: 25px; padding: 6px 6px 6px 14px; }
+  .chat-input { flex: 1; font-size: 13px; border: none; background: transparent; outline: none; font-family: inherit; }
+  .send-btn { width: 36px; height: 36px; border-radius: 50%; color: white; border: none; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: opacity 0.2s; flex-shrink: 0; }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* QUICK BUTTONS */
+  .quick-section { padding: 10px 12px 12px; border-top: 1px solid #f0f0f0; background: white; }
+  .quick-label { font-size: 10px; color: #bbb; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .quick-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .qbtn { font-size: 12px; padding: 6px 12px; border-radius: 20px; background: #f5f7ff; border: 1px solid #e0e5ff; cursor: pointer; color: #4F46E5; font-weight: 500; transition: all 0.15s; white-space: nowrap; }
+  .qbtn:hover { background: #e0e7ff; border-color: #c7d2fe; }
+
+  /* FOOTER */
+  .chat-footer { text-align: center; padding: 8px; font-size: 10px; color: #ccc; background: white; cursor: pointer; display: none !important; }
+  .chat-footer:hover { color: #4F46E5; }
+  body.admin-mode .chat-footer { display: block !important; }
+
+  /* TYPING */
+  .typing-dots { display: flex; gap: 4px; align-items: center; padding: 2px 0; }
+  .typing-dots span { width: 7px; height: 7px; background: #ccc; border-radius: 50%; animation: bounce 1.2s infinite; }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+
+  /* LOADING */
+  .fetch-notice { font-size: 11px; color: #059669; background: #ECFDF5; padding: 6px 12px; text-align: center; border-bottom: 1px solid #D1FAE5; }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen">
+  <div class="setup-badge">⚡ SmartOffice AI</div>
+  <h1 class="setup-title">Setup Your AI Assistant</h1>
+  <p class="setup-sub">Just add the business website — the AI reads it automatically.</p>
+
+  <div class="field">
+    <label>Business Website <span class="req">*</span></label>
+    <input id="s-website" type="text" placeholder="https://www.yourbusiness.com" class="required-field" oninput="checkUrl()" />
+    <p id="url-warning" class="hint" style="color:#EF4444; display:none;">⚠️ Vercel cannot read local addresses (localhost/127.0.0.1). Please use a live URL or paste details in the Knowledge Base below.</p>
+    <p class="hint green">✓ The AI will read the website and answer from real content</p>
+  </div>
+
+  <div class="field">
+    <label>Business Name <span class="req">*</span></label>
+    <input id="s-name" type="text" placeholder="e.g. Star Restaurant" />
+  </div>
+
+  <hr class="divider" />
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <p class="optional-label" style="margin-bottom:0;">Knowledge Base — add details manually</p>
+    <button id="suggest-btn" onclick="smartFill()" style="font-size:10px; padding:2px 8px; border:1px solid #4F46E5; background:none; color:#4F46E5; border-radius:4px; cursor:pointer;">✨ AI Auto-Fill (Any Business)</button>
+  </div>
+  <div style="margin-bottom:14px;"></div>
+
+  <div class="field">
+    <label>Business Category</label>
+    <input id="s-type" type="text" placeholder="e.g. Charity Donation Platform, Dental Clinic..." />
+  </div>
+  <div class="field">
+    <label>Contact Info (Phone/Email)</label>
+    <input id="s-contact" type="text" placeholder="e.g. support@donateplatform.com" />
+  </div>
+  <div class="field">
+    <label>Business Pricing / Fees</label>
+    <input id="s-price" type="text" placeholder="e.g. Starting from $10 or 'Custom Quotes'" />
+    <p class="hint">Providing this prevents the AI from saying "I don't know the price".</p>
+  </div>
+  <div class="field">
+    <label>Detailed Bio / Knowledge Base</label>
+    <textarea id="s-extra" placeholder="Paste your website text, README, or detailed descriptions here..."></textarea>
+    <p class="hint">Paste your project description here to make the bot much smarter!</p>
+  </div>
+
+  <hr class="divider" />
+  <p class="optional-label">Quick Links / Other</p>
+  <div class="field">
+    <label>Location (Optional)</label>
+    <input id="s-location" type="text" placeholder="e.g. London, UK" />
+  </div>
+  <div class="field">
+    <label>Opening Hours (Optional)</label>
+    <input id="s-hours" type="text" placeholder="e.g. 24/7 Online" />
+  </div>
+
+  <hr class="divider" />
+  <div class="field">
+    <label>Brand Color</label>
+    <div class="color-row" id="color-row">
+      <div class="color-opt selected" style="background:#4F46E5" data-color="#4F46E5"></div>
+      <div class="color-opt" style="background:#1D9E75" data-color="#1D9E75"></div>
+      <div class="color-opt" style="background:#DC2626" data-color="#DC2626"></div>
+      <div class="color-opt" style="background:#0369A1" data-color="#0369A1"></div>
+      <div class="color-opt" style="background:#7C3AED" data-color="#7C3AED"></div>
+      <div class="color-opt" style="background:#D97706" data-color="#D97706"></div>
+      <div class="color-opt" style="background:#1a1a1a" data-color="#1a1a1a"></div>
+    </div>
+  </div>
+
+  <button id="start-btn" onclick="launchBot()">Launch AI Assistant ✨</button>
+</div>
+
+<!-- CHAT SCREEN -->
+<div id="chat-screen">
+  <div class="chat-header" id="chat-header">
+    <div class="chat-logo" id="chat-logo" onclick="secretTrigger()" style="cursor:pointer">🤖</div>
+    <div class="chat-header-text">
+      <div class="chat-title" id="chat-title">Smart Assistant</div>
+      <div class="chat-sub"><span class="online-dot"></span>Online • AI-powered 24/7</div>
+    </div>
+    <span class="powered-badge">Claude AI</span>
+  </div>
+  <div id="fetch-notice" class="fetch-notice" style="display:none">🔍 Reading website content...</div>
+  <div id="chat-box"></div>
+  <div class="input-area">
+    <div class="input-row">
+      <input class="chat-input" id="user-input" type="text" placeholder="Ask anything..." />
+      <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+  <div class="quick-section">
+    <div class="quick-label">Quick questions</div>
+    <div class="quick-btns" id="quick-btns"></div>
+  </div>
+  <div class="chat-footer" onclick="resetBot()">← Change business info</div>
+</div>
+
+<script>
+let color = '#4F46E5';
+let biz = {};
+let history = [];
+
+// Secret Admin Trigger
+let clickCount = 0;
+let clickTimer;
+let isSetupMode = new URLSearchParams(window.location.search).get('setup') === 'true';
+
+console.log("Chatbot Initialized. Setup Mode:", isSetupMode);
+
+function secretTrigger() {
+  clickCount++;
+  clearTimeout(clickTimer);
+  
+  if (clickCount >= 5) {
+    isSetupMode = true;
+    document.body.classList.add('admin-mode');
+    document.getElementById('setup-screen').style.display = 'block'; // Force override
+    alert("🛠️ Admin Mode Enabled");
+    clickCount = 0;
+  }
+  
+  clickTimer = setTimeout(() => { clickCount = 0; }, 2000); // Reset count after 2 seconds
+}
+
+// Initial visibility check
+if (isSetupMode) {
+  document.body.classList.add('admin-mode');
+}
+
+// Load from localStorage if available
+const localConfig = localStorage.getItem('chatbotConfig');
+let hasAutoLaunched = false;
+
+if (localConfig) {
+  try {
+    const config = JSON.parse(localConfig);
+    if (config.websiteUrl && config.businessName) {
+      document.getElementById('s-website').value = config.websiteUrl;
+      document.getElementById('s-name').value = config.businessName;
+      if (config.sheetUrl) biz.sheetUrl = config.sheetUrl;
+      
+      // If we have config, show the chat screen
+      document.getElementById('setup-screen').style.display = 'none';
+      document.getElementById('chat-screen').style.display = 'block';
+
+      // Auto-launch if we have saved data
+      setTimeout(() => {
+        if (!hasAutoLaunched) {
+          launchBot();
+          hasAutoLaunched = true;
+        }
+      }, 500);
+    }
+  } catch (e) {
+    console.error("Error loading local config", e);
+  }
+} else if (!isSetupMode) {
+  // If no config and not setup mode, show a friendly message or empty chat
+  document.body.innerHTML = '<div style="color:#666; text-align:center; padding-top:100px; font-family:sans-serif;"><h3>Assistant is preparing...</h3><p>Please wait or refresh.</p></div>';
+}
+
+function checkUrl() {
+  const url = document.getElementById('s-website').value.toLowerCase();
+  const warning = document.getElementById('url-warning');
+  if (url.includes('localhost') || url.includes('127.0.0.1')) {
+    warning.style.display = 'block';
+  } else {
+    warning.style.display = 'none';
+  }
+}
+
+async function smartFill() {
+  const name = document.getElementById('s-name').value.trim();
+  const category = document.getElementById('s-type').value.trim();
+  const url = document.getElementById('s-website').value.trim();
+  const btn = document.getElementById('suggest-btn');
+  
+  if (!name && !url) { alert('Please enter a Business Name or Website URL first!'); return; }
+  
+  btn.textContent = '🔍 Reading & Analyzing...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/suggest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, category, url })
+    });
+    const data = await res.json();
+    const s = data.suggestion;
+    if (s) {
+      if (s.bio) document.getElementById('s-extra').value = s.bio;
+      if (s.contact) document.getElementById('s-contact').value = s.contact;
+      if (s.pricing) document.getElementById('s-price').value = s.pricing;
+      if (s.category) document.getElementById('s-type').value = s.category;
+      if (s.hours) document.getElementById('s-hours').value = s.hours;
+      
+      // Also try to fill Name if it was empty
+      if (!name && s.name) document.getElementById('s-name').value = s.name;
+    }
+  } catch (err) {
+    alert('Failed to generate suggestion. Please try again.');
+  } finally {
+    btn.textContent = '✨ AI Auto-Fill (Any Business)';
+    btn.disabled = false;
+  }
+}
+
+document.querySelectorAll('.color-opt').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.color-opt').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    color = el.dataset.color;
+  });
+});
+
+function getTime() {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function launchBot() {
+  let website = document.getElementById('s-website').value.trim();
+  const name = document.getElementById('s-name').value.trim();
+  if (!website || !name) { alert('Please enter the business website and name!'); return; }
+  if (website && !website.startsWith('http')) website = 'https://' + website;
+  document.getElementById('s-website').value = website;
+
+  biz = {
+    name, website,
+    type:     document.getElementById('s-type').value.trim(),
+    hours:    document.getElementById('s-hours').value.trim(),
+    location: document.getElementById('s-location').value.trim(),
+    contact:  document.getElementById('s-contact').value.trim(),
+    extra:    document.getElementById('s-extra').value.trim(),
+    sheetUrl: biz.sheetUrl || null, // Keep sheetUrl if it was set via URL
+  };
+
+  // Save to localStorage for persistence inside the iframe
+  localStorage.setItem('chatbotConfig', JSON.stringify({
+    websiteUrl: website,
+    businessName: name,
+    sheetUrl: biz.sheetUrl
+  }));
+
+  history = [];
+
+  // Apply branding
+  document.getElementById('chat-header').style.background = color;
+  document.getElementById('send-btn').style.background = color;
+  document.getElementById('chat-title').textContent = biz.name + ' Assistant';
+
+  // Quick buttons
+  const qb = document.getElementById('quick-btns');
+  qb.innerHTML = '';
+  const qs = [
+    { icon: '🕐', text: 'Opening hours?' },
+    { icon: '📍', text: 'Where are you?' },
+    { icon: '💰', text: 'What are your prices?' },
+    { icon: '📅', text: 'How do I book?' },
+    { icon: '📞', text: 'How to contact you?' },
+    { icon: '🏪', text: 'Tell me about this business' },
+  ];
+  qs.forEach(q => {
+    const b = document.createElement('button');
+    b.className = 'qbtn';
+    b.innerHTML = `${q.icon} ${q.text}`;
+    b.onclick = () => quickSend(q.text);
+    qb.appendChild(b);
+  });
+
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('chat-screen').style.display = 'block';
+  document.getElementById('chat-box').innerHTML = '';
+  addMessage(`Hi! 👋 I'm the AI assistant for **${biz.name}**. I've read the website and I'm ready to help. Ask me anything!`, false);
+}
+
+function addMessage(text, isUser) {
+  const box = document.getElementById('chat-box');
+  const row = document.createElement('div');
+  row.className = 'msg-row' + (isUser ? ' user' : '');
+
+  if (!isUser) {
+    const av = document.createElement('div');
+    av.className = 'msg-av';
+    av.style.background = color;
+    av.textContent = '🤖';
+    row.appendChild(av);
+  }
+
+  const b = document.createElement('div');
+  b.className = 'bubble' + (isUser ? ' user' : '');
+  if (isUser) b.style.background = color;
+
+  // Bold support
+  b.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') + 
+    `<div class="timestamp">${getTime()}</div>`;
+
+  row.appendChild(b);
+  box.appendChild(row);
+  box.scrollTop = box.scrollHeight;
+}
+
+function addTyping() {
+  const box = document.getElementById('chat-box');
+  const row = document.createElement('div');
+  row.className = 'msg-row'; row.id = 'typing';
+  const av = document.createElement('div');
+  av.className = 'msg-av'; av.style.background = color; av.textContent = '🤖';
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  b.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  row.appendChild(av); row.appendChild(b);
+  box.appendChild(row);
+  box.scrollTop = box.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing');
+  if (t) t.remove();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  addMessage(text, true);
+  history.push({ role: 'user', content: text });
+  addTyping();
+  document.getElementById('send-btn').disabled = true;
+
+  try {
+    const res = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, history: history.slice(-10), bizInfo: biz })
+    });
+    const data = await res.json();
+    removeTyping();
+
+    if (data.error) {
+      addMessage('Error: ' + data.error, false);
+    } else {
+      addMessage(data.reply, false);
+      history.push({ role: 'assistant', content: data.reply });
+    }
+  } catch (err) {
+    removeTyping();
+    addMessage('Connection error — please try again.', false);
+  }
+
+  document.getElementById('send-btn').disabled = false;
+  input.focus();
+}
+
+document.getElementById('user-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendMessage();
+});
+
+function quickSend(text) {
+  document.getElementById('user-input').value = text;
+  sendMessage();
+}
+
+function resetBot() {
+  if (!isSetupMode) return;
+  history = [];
+  document.getElementById('chat-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'block';
+}
+
+// Auto-launch if config is passed via URL
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const website = params.get('websiteUrl');
+  const name = params.get('businessName');
+  const sheet = params.get('sheetUrl');
+  
+  if (website && name) {
+    document.getElementById('s-website').value = website;
+    document.getElementById('s-name').value = name;
+    if (sheet) biz.sheetUrl = sheet; // Store sheet URL in biz object
+    // Small delay to ensure everything is ready
+    setTimeout(() => {
+      if (!hasAutoLaunched) {
+        launchBot();
+        hasAutoLaunched = true;
+      }
+    }, 500);
+  }
+});
+</script>
+</body>
+</html>

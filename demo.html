@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bentley's Café — Widget Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #fff; }
+  .hero { background: #5F3A1A; color: white; padding: 60px 24px; text-align: center; }
+  .hero h1 { font-size: 36px; margin-bottom: 10px; }
+  .hero p { font-size: 16px; opacity: 0.85; }
+  .content { max-width: 800px; margin: 40px auto; padding: 0 24px; }
+  .section { margin-bottom: 40px; }
+  .section h2 { font-size: 22px; color: #333; margin-bottom: 12px; border-left: 4px solid #5F3A1A; padding-left: 12px; }
+  .section p { color: #666; line-height: 1.7; font-size: 15px; }
+  .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-top: 16px; }
+  .menu-card { background: #f9f5f0; border-radius: 12px; padding: 16px; }
+  .menu-card h3 { font-size: 15px; color: #333; margin-bottom: 6px; }
+  .menu-card p { font-size: 13px; color: #888; }
+  .menu-card .price { font-weight: 700; color: #5F3A1A; margin-top: 8px; font-size: 15px; }
+  footer { background: #f5f0eb; text-align: center; padding: 24px; color: #999; font-size: 13px; margin-top: 60px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>☕ Bentley's Café</h1>
+  <p>35 Wellfield Road, Cardiff · Open 7 days · 7am – 5pm</p>
+</div>
+
+<div class="content">
+  <div class="section">
+    <h2>About Us</h2>
+    <p>Bentley's Café is one of Cardiff's most beloved breakfast spots, serving classic Welsh breakfasts and fresh coffee since the early days of Wellfield Road. We're back and better than ever — same great food, same warm atmosphere.</p>
+  </div>
+
+  <div class="section">
+    <h2>Our Menu</h2>
+    <div class="menu-grid">
+      <div class="menu-card">
+        <h3>Full Welsh Breakfast</h3>
+        <p>Eggs, bacon, sausage, beans, toast & more</p>
+        <div class="price">£9.50</div>
+      </div>
+      <div class="menu-card">
+        <h3>Eggs on Toast</h3>
+        <p>Poached, scrambled or fried</p>
+        <div class="price">£5.50</div>
+      </div>
+      <div class="menu-card">
+        <h3>Freshly Brewed Coffee</h3>
+        <p>Latte, Cappuccino, Americano</p>
+        <div class="price">From £2.80</div>
+      </div>
+      <div class="menu-card">
+        <h3>Welsh Cakes</h3>
+        <p>Fresh baked daily, served warm</p>
+        <div class="price">£1.50 each</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Find Us</h2>
+    <p>📍 35 Wellfield Road, Cardiff CF24 3PA<br/>
+    📞 02922 805513<br/>
+    ✉️ info@bentley35.co.uk<br/>
+    🕐 Open 7 days a week — 7am to 5pm</p>
+  </div>
+</div>
+
+<footer>
+  © 2026 Bentley's Café Cardiff · Powered by SmartOffice AI 🤖
+</footer>
+
+<!-- SmartOffice AI Widget -->
+<script>
+  window.CHATBOT_URL = 'https://chatbot-demo-v4.vercel.app';
+  window.CHATBOT_COLOR = '#5F3A1A';
+  window.CHATBOT_POSITION = 'right';
+</script>
+<script src="/widget.js"></script>
+
+</body>
+</html>
