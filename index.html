@@ -67,9 +67,9 @@
   .qbtn:hover { background: #e0e7ff; border-color: #c7d2fe; }
 
   /* FOOTER */
-  .chat-footer { text-align: center; padding: 8px; font-size: 10px; color: #ccc; background: white; cursor: pointer; display: none !important; }
+  .chat-footer { text-align: center; padding: 8px; font-size: 10px; color: #ccc; background: white; cursor: pointer; display: none !important; visibility: hidden; }
   .chat-footer:hover { color: #4F46E5; }
-  body.admin-mode .chat-footer { display: block !important; }
+  body.admin-mode .chat-footer { display: block !important; visibility: visible; }
 
   /* TYPING */
   .typing-dots { display: flex; gap: 4px; align-items: center; padding: 2px 0; }
@@ -186,32 +186,35 @@ let color = '#4F46E5';
 let biz = {};
 let history = [];
 
+// Hide setup tools if not in setup mode
+function applyVisibility() {
+  const footer = document.querySelector('.chat-footer');
+  if (!isSetupMode) {
+    document.getElementById('setup-screen').style.display = 'none';
+    document.body.classList.remove('admin-mode');
+    if (footer) footer.style.setProperty('display', 'none', 'important');
+  } else {
+    document.body.classList.add('admin-mode');
+    if (footer) footer.style.setProperty('display', 'block', 'important');
+  }
+}
+
 // Secret Admin Trigger
-let clickCount = 0;
-let clickTimer;
-let isSetupMode = new URLSearchParams(window.location.search).get('setup') === 'true';
-
-console.log("Chatbot Initialized. Setup Mode:", isSetupMode);
-
 function secretTrigger() {
   clickCount++;
   clearTimeout(clickTimer);
-  
   if (clickCount >= 5) {
     isSetupMode = true;
-    document.body.classList.add('admin-mode');
-    document.getElementById('setup-screen').style.display = 'block'; // Force override
+    applyVisibility();
     alert("🛠️ Admin Mode Enabled");
     clickCount = 0;
   }
-  
-  clickTimer = setTimeout(() => { clickCount = 0; }, 2000); // Reset count after 2 seconds
+  clickTimer = setTimeout(() => { clickCount = 0; }, 2000);
 }
 
-// Initial visibility check
-if (isSetupMode) {
-  document.body.classList.add('admin-mode');
-}
+// Run visibility check on start and after a small delay to catch auto-launch
+applyVisibility();
+setTimeout(applyVisibility, 500);
 
 // Load from localStorage if available
 const localConfig = localStorage.getItem('chatbotConfig');
