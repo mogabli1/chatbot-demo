@@ -198,18 +198,20 @@ function applyVisibility() {
   if (isSetupMode) {
     document.body.classList.add('admin-mode');
     if (adminLink) {
-      adminLink.style.display = 'block';
+      adminLink.style.setProperty('display', 'block', 'important');
       adminLink.onclick = resetBot;
     }
-    // Show setup ONLY if chat is not active
+    // Only show setup if chat is NOT open
     if (chatScreen.style.display !== 'block') {
-      setupScreen.style.display = 'block';
+      setupScreen.style.setProperty('display', 'block', 'important');
+    } else {
+      setupScreen.style.display = 'none';
     }
   } else {
     document.body.classList.remove('admin-mode');
     setupScreen.style.display = 'none';
     if (adminLink) {
-      adminLink.style.display = 'none';
+      adminLink.style.setProperty('display', 'none', 'important');
       adminLink.onclick = null;
     }
   }
@@ -225,44 +227,6 @@ function secretTrigger() {
     clickCount = 0;
   }
   clickTimer = setTimeout(() => { clickCount = 0; }, 2000);
-}
-
-// Ensure visibility is applied correctly on startup
-applyVisibility();
-window.onload = applyVisibility;
-setTimeout(applyVisibility, 500);
-setTimeout(applyVisibility, 2000);
-
-// Load from localStorage if available
-const localConfig = localStorage.getItem('chatbotConfig');
-let hasAutoLaunched = false;
-
-if (localConfig) {
-  try {
-    const config = JSON.parse(localConfig);
-    if (config.websiteUrl && config.businessName) {
-      document.getElementById('s-website').value = config.websiteUrl;
-      document.getElementById('s-name').value = config.businessName;
-      if (config.sheetUrl) biz.sheetUrl = config.sheetUrl;
-      
-      // If we have config, show the chat screen
-      document.getElementById('setup-screen').style.display = 'none';
-      document.getElementById('chat-screen').style.display = 'block';
-
-      // Auto-launch if we have saved data
-      setTimeout(() => {
-        if (!hasAutoLaunched) {
-          launchBot();
-          hasAutoLaunched = true;
-        }
-      }, 500);
-    }
-  } catch (e) {
-    console.error("Error loading local config", e);
-  }
-} else if (!isSetupMode) {
-  // If no config and not setup mode, show a friendly message or empty chat
-  document.body.innerHTML = '<div style="color:#666; text-align:center; padding-top:100px; font-family:sans-serif;"><h3>Assistant is preparing...</h3><p>Please wait or refresh.</p></div>';
 }
 
 function checkUrl() {
@@ -300,8 +264,6 @@ async function smartFill() {
       if (s.pricing) document.getElementById('s-price').value = s.pricing;
       if (s.category) document.getElementById('s-type').value = s.category;
       if (s.hours) document.getElementById('s-hours').value = s.hours;
-      
-      // Also try to fill Name if it was empty
       if (!name && s.name) document.getElementById('s-name').value = s.name;
     }
   } catch (err) {
@@ -338,10 +300,9 @@ function launchBot() {
     location: document.getElementById('s-location').value.trim(),
     contact:  document.getElementById('s-contact').value.trim(),
     extra:    document.getElementById('s-extra').value.trim(),
-    sheetUrl: biz.sheetUrl || null, // Keep sheetUrl if it was set via URL
+    sheetUrl: biz.sheetUrl || null,
   };
 
-  // Save to localStorage for persistence inside the iframe
   localStorage.setItem('chatbotConfig', JSON.stringify({
     websiteUrl: website,
     businessName: name,
@@ -350,12 +311,10 @@ function launchBot() {
 
   history = [];
 
-  // Apply branding
   document.getElementById('chat-header').style.background = color;
   document.getElementById('send-btn').style.background = color;
   document.getElementById('chat-title').textContent = biz.name + ' Assistant';
 
-  // Quick buttons
   const qb = document.getElementById('quick-btns');
   qb.innerHTML = '';
   const qs = [
@@ -377,6 +336,9 @@ function launchBot() {
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('chat-screen').style.display = 'block';
   document.getElementById('chat-box').innerHTML = '';
+  
+  applyVisibility(); // CRITICAL: Sync visibility on launch
+  
   addMessage(`Hi! 👋 I'm the AI assistant for **${biz.name}**. I've read the website and I'm ready to help. Ask me anything!`, false);
 }
 
@@ -396,11 +358,7 @@ function addMessage(text, isUser) {
   const b = document.createElement('div');
   b.className = 'bubble' + (isUser ? ' user' : '');
   if (isUser) b.style.background = color;
-
-  // Bold support
-  b.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') + 
-    `<div class="timestamp">${getTime()}</div>`;
-
+  b.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') + `<div class="timestamp">${getTime()}</div>`;
   row.appendChild(b);
   box.appendChild(row);
   box.scrollTop = box.scrollHeight;
@@ -430,12 +388,10 @@ async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
-
   addMessage(text, true);
   history.push({ role: 'user', content: text });
   addTyping();
   document.getElementById('send-btn').disabled = true;
-
   try {
     const res = await fetch('/chat', {
       method: 'POST',
@@ -444,7 +400,6 @@ async function sendMessage() {
     });
     const data = await res.json();
     removeTyping();
-
     if (data.error) {
       addMessage('Error: ' + data.error, false);
     } else {
@@ -455,7 +410,6 @@ async function sendMessage() {
     removeTyping();
     addMessage('Connection error — please try again.', false);
   }
-
   document.getElementById('send-btn').disabled = false;
   input.focus();
 }
@@ -474,20 +428,45 @@ function resetBot() {
   history = [];
   document.getElementById('chat-screen').style.display = 'none';
   document.getElementById('setup-screen').style.display = 'block';
+  applyVisibility();
 }
 
-// Auto-launch if config is passed via URL
+window.onload = applyVisibility;
+setTimeout(applyVisibility, 500);
+setTimeout(applyVisibility, 2000);
+
+const localConfig = localStorage.getItem('chatbotConfig');
+let hasAutoLaunched = false;
+if (localConfig) {
+  try {
+    const config = JSON.parse(localConfig);
+    if (config.websiteUrl && config.businessName) {
+      document.getElementById('s-website').value = config.websiteUrl;
+      document.getElementById('s-name').value = config.businessName;
+      if (config.sheetUrl) biz.sheetUrl = config.sheetUrl;
+      document.getElementById('setup-screen').style.display = 'none';
+      document.getElementById('chat-screen').style.display = 'block';
+      setTimeout(() => {
+        if (!hasAutoLaunched) {
+          launchBot();
+          hasAutoLaunched = true;
+        }
+      }, 500);
+    }
+  } catch (e) {}
+} else if (!isSetupMode) {
+  document.body.innerHTML = '<div style="color:#666; text-align:center; padding-top:100px; font-family:sans-serif;"><h3>Assistant is preparing...</h3><p>Please wait or refresh.</p></div>';
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
   const website = params.get('websiteUrl');
   const name = params.get('businessName');
   const sheet = params.get('sheetUrl');
-  
   if (website && name) {
     document.getElementById('s-website').value = website;
     document.getElementById('s-name').value = name;
-    if (sheet) biz.sheetUrl = sheet; // Store sheet URL in biz object
-    // Small delay to ensure everything is ready
+    if (sheet) biz.sheetUrl = sheet;
     setTimeout(() => {
       if (!hasAutoLaunched) {
         launchBot();
