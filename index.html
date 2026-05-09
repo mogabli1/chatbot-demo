@@ -67,9 +67,9 @@
   .qbtn:hover { background: #e0e7ff; border-color: #c7d2fe; }
 
   /* FOOTER */
-  .chat-footer { text-align: center; padding: 8px; font-size: 10px; color: #ccc; background: white; cursor: pointer; display: none !important; visibility: hidden; }
-  .chat-footer:hover { color: #4F46E5; }
-  body.admin-mode .chat-footer { display: block !important; visibility: visible; }
+  .admin-only-footer { text-align: center; padding: 8px; font-size: 10px; color: #ccc; background: white; cursor: pointer; display: none !important; }
+  .admin-only-footer:hover { color: #4F46E5; }
+  body.admin-mode .admin-only-footer { display: block !important; }
 
   /* TYPING */
   .typing-dots { display: flex; gap: 4px; align-items: center; padding: 2px 0; }
@@ -178,7 +178,7 @@
     <div class="quick-label">Quick questions</div>
     <div class="quick-btns" id="quick-btns"></div>
   </div>
-  <div class="chat-footer" onclick="resetBot()">← Change business info</div>
+  <div class="admin-only-footer">← Change business info</div>
 </div>
 
 <script>
@@ -188,14 +188,20 @@ let history = [];
 
 // Hide setup tools if not in setup mode
 function applyVisibility() {
-  const footer = document.querySelector('.chat-footer');
+  const footer = document.querySelector('.admin-only-footer');
   if (!isSetupMode) {
     document.getElementById('setup-screen').style.display = 'none';
     document.body.classList.remove('admin-mode');
-    if (footer) footer.style.setProperty('display', 'none', 'important');
+    if (footer) {
+      footer.style.display = 'none';
+      footer.onclick = null;
+    }
   } else {
     document.body.classList.add('admin-mode');
-    if (footer) footer.style.setProperty('display', 'block', 'important');
+    if (footer) {
+      footer.style.display = 'block';
+      footer.onclick = resetBot;
+    }
   }
 }
 
@@ -212,9 +218,14 @@ function secretTrigger() {
   clickTimer = setTimeout(() => { clickCount = 0; }, 2000);
 }
 
-// Run visibility check on start and after a small delay to catch auto-launch
+// FORCE HIDE ON EVERY LOAD
+window.addEventListener('load', () => {
+  isSetupMode = new URLSearchParams(window.location.search).get('setup') === 'true';
+  applyVisibility();
+});
+
 applyVisibility();
-setTimeout(applyVisibility, 500);
+setTimeout(applyVisibility, 1000);
 
 // Load from localStorage if available
 const localConfig = localStorage.getItem('chatbotConfig');
