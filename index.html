@@ -299,6 +299,7 @@ function launchBot() {
     hours:    document.getElementById('s-hours').value.trim(),
     location: document.getElementById('s-location').value.trim(),
     contact:  document.getElementById('s-contact').value.trim(),
+    price:    document.getElementById('s-price').value.trim(),
     extra:    document.getElementById('s-extra').value.trim(),
     sheetUrl: biz.sheetUrl || null,
   };
@@ -306,6 +307,12 @@ function launchBot() {
   localStorage.setItem('chatbotConfig', JSON.stringify({
     websiteUrl: website,
     businessName: name,
+    type:     biz.type,
+    hours:    biz.hours,
+    location: biz.location,
+    contact:  biz.contact,
+    price:    biz.price,
+    extra:    biz.extra,
     sheetUrl: biz.sheetUrl
   }));
 
@@ -441,9 +448,16 @@ if (localConfig) {
   try {
     const config = JSON.parse(localConfig);
     if (config.websiteUrl && config.businessName) {
-      document.getElementById('s-website').value = config.websiteUrl;
-      document.getElementById('s-name').value = config.businessName;
+      document.getElementById('s-website').value = config.websiteUrl || '';
+      document.getElementById('s-name').value = config.businessName || '';
+      document.getElementById('s-type').value = config.type || '';
+      document.getElementById('s-contact').value = config.contact || '';
+      document.getElementById('s-price').value = config.price || '';
+      document.getElementById('s-extra').value = config.extra || '';
+      document.getElementById('s-location').value = config.location || '';
+      document.getElementById('s-hours').value = config.hours || '';
       if (config.sheetUrl) biz.sheetUrl = config.sheetUrl;
+      
       document.getElementById('setup-screen').style.display = 'none';
       document.getElementById('chat-screen').style.display = 'block';
       setTimeout(() => {
