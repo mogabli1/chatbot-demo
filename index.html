@@ -51,7 +51,7 @@
   .bubble .timestamp { font-size: 10px; color: #aaa; margin-top: 4px; }
   .bubble.user .timestamp { color: rgba(255,255,255,0.65); }
 
-  /* INPUT ROW */
+  /* INPUT AREA */
   .input-area { padding: 12px; border-top: 1px solid #eee; background: white; }
   .input-row { display: flex; gap: 8px; align-items: center; background: #f5f5f5; border-radius: 25px; padding: 6px 6px 6px 14px; }
   .chat-input { flex: 1; font-size: 13px; border: none; background: transparent; outline: none; font-family: inherit; }
@@ -180,40 +180,58 @@
   <div id="admin-link">← Change business info</div>
 </div>
 
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:white; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:10000; color:#666; font-family:sans-serif; text-align:center; display: flex;">
+  <h3>Assistant is preparing...</h3>
+  <p>Please wait or refresh.</p>
+</div>
+
 <script>
 let color = '#4F46E5';
 let biz = {};
 let history = [];
 let clickCount = 0;
 let clickTimer;
+let isProcessing = false;
+let hasAutoLaunched = false;
 
 // GLOBAL ADMIN CHECK
 let isSetupMode = window.location.search.includes('setup=true');
 
-function applyVisibility() {
-  const adminLink = document.getElementById('admin-link');
-  const chatScreen = document.getElementById('chat-screen');
-  const setupScreen = document.getElementById('setup-screen');
+function hideLoader() {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) overlay.style.setProperty('display', 'none', 'important');
+}
 
-  if (isSetupMode) {
-    document.body.classList.add('admin-mode');
-    if (adminLink) {
-      adminLink.style.setProperty('display', 'block', 'important');
-      adminLink.onclick = resetBot;
-    }
-    // Only show setup if chat is NOT open
-    if (chatScreen.style.display !== 'block') {
-      setupScreen.style.setProperty('display', 'block', 'important');
+function applyVisibility() {
+  try {
+    const adminLink = document.getElementById('admin-link');
+    const chatScreen = document.getElementById('chat-screen');
+    const setupScreen = document.getElementById('setup-screen');
+
+    if (isSetupMode) {
+      document.body.classList.add('admin-mode');
+      if (adminLink) {
+        adminLink.style.setProperty('display', 'block', 'important');
+        adminLink.onclick = resetBot;
+      }
+      if (chatScreen.style.display !== 'block') {
+        setupScreen.style.setProperty('display', 'block', 'important');
+      } else {
+        setupScreen.style.display = 'none';
+      }
+      hideLoader();
     } else {
+      document.body.classList.remove('admin-mode');
       setupScreen.style.display = 'none';
+      if (adminLink) {
+        adminLink.style.setProperty('display', 'none', 'important');
+        adminLink.onclick = null;
+      }
     }
-  } else {
-    document.body.classList.remove('admin-mode');
-    setupScreen.style.display = 'none';
-    if (adminLink) {
-      adminLink.style.setProperty('display', 'none', 'important');
-      adminLink.onclick = null;
-    }
+  } catch (e) {
+    console.error("Visibility Error:", e);
+    hideLoader(); // Emergency fallback
   }
 }
 
@@ -287,66 +305,84 @@ function getTime() {
 }
 
 function launchBot() {
-  let website = document.getElementById('s-website').value.trim();
-  const name = document.getElementById('s-name').value.trim();
-  if (!website || !name) { alert('Please enter the business website and name!'); return; }
-  if (website && !website.startsWith('http')) website = 'https://' + website;
-  document.getElementById('s-website').value = website;
+  try {
+    hideLoader();
 
-  biz = {
-    name, website,
-    type:     document.getElementById('s-type').value.trim(),
-    hours:    document.getElementById('s-hours').value.trim(),
-    location: document.getElementById('s-location').value.trim(),
-    contact:  document.getElementById('s-contact').value.trim(),
-    price:    document.getElementById('s-price').value.trim(),
-    extra:    document.getElementById('s-extra').value.trim(),
-    sheetUrl: biz.sheetUrl || null,
-  };
+    let website = document.getElementById('s-website').value.trim();
+    const name = document.getElementById('s-name').value.trim();
+    if (!website || !name) { 
+        if (!hasAutoLaunched) {
+            document.getElementById('setup-screen').style.setProperty('display', 'block', 'important');
+        }
+        return; 
+    }
+    
+    if (website && !website.startsWith('http')) website = 'https://' + website;
+    document.getElementById('s-website').value = website;
 
-  localStorage.setItem('chatbotConfig', JSON.stringify({
-    websiteUrl: website,
-    businessName: name,
-    type:     biz.type,
-    hours:    biz.hours,
-    location: biz.location,
-    contact:  biz.contact,
-    price:    biz.price,
-    extra:    biz.extra,
-    sheetUrl: biz.sheetUrl
-  }));
+    biz = {
+      name, website,
+      type:     document.getElementById('s-type').value.trim(),
+      hours:    document.getElementById('s-hours').value.trim(),
+      location: document.getElementById('s-location').value.trim(),
+      contact:  document.getElementById('s-contact').value.trim(),
+      price:    document.getElementById('s-price').value.trim(),
+      extra:    document.getElementById('s-extra').value.trim(),
+      sheetUrl: biz.sheetUrl || null,
+    };
 
-  history = [];
+    try {
+      localStorage.setItem('chatbotConfig', JSON.stringify({
+        websiteUrl: website,
+        businessName: name,
+        type:     biz.type,
+        hours:    biz.hours,
+        location: biz.location,
+        contact:  biz.contact,
+        price:    biz.price,
+        extra:    biz.extra,
+        sheetUrl: biz.sheetUrl
+      }));
+    } catch (e) {
+      console.warn("Storage blocked: Config will not persist after refresh.");
+    }
 
-  document.getElementById('chat-header').style.background = color;
-  document.getElementById('send-btn').style.background = color;
-  document.getElementById('chat-title').textContent = biz.name + ' Assistant';
+    history = [];
 
-  const qb = document.getElementById('quick-btns');
-  qb.innerHTML = '';
-  const qs = [
-    { icon: '🕐', text: 'Opening hours?' },
-    { icon: '📍', text: 'Where are you?' },
-    { icon: '💰', text: 'What are your prices?' },
-    { icon: '📅', text: 'How do I book?' },
-    { icon: '📞', text: 'How to contact you?' },
-    { icon: '🏪', text: 'Tell me about this business' },
-  ];
-  qs.forEach(q => {
-    const b = document.createElement('button');
-    b.className = 'qbtn';
-    b.innerHTML = `${q.icon} ${q.text}`;
-    b.onclick = () => quickSend(q.text);
-    qb.appendChild(b);
-  });
+    document.getElementById('chat-header').style.background = color;
+    document.getElementById('send-btn').style.background = color;
+    document.getElementById('chat-title').textContent = biz.name + ' Assistant';
 
-  document.getElementById('setup-screen').style.display = 'none';
-  document.getElementById('chat-screen').style.display = 'block';
-  document.getElementById('chat-box').innerHTML = '';
-  
-  applyVisibility(); // CRITICAL: Sync visibility on launch
-  
-  addMessage(`Hi! 👋 I'm the AI assistant for **${biz.name}**. I've read the website and I'm ready to help. Ask me anything!`, false);
+    const qb = document.getElementById('quick-btns');
+    qb.innerHTML = '';
+    const qs = [
+      { icon: '🕐', text: 'Opening hours?' },
+      { icon: '📍', text: 'Where are you?' },
+      { icon: '💰', text: 'What are your prices?' },
+      { icon: '📅', text: 'How do I book?' },
+      { icon: '📞', text: 'How to contact you?' },
+      { icon: '🏪', text: 'Tell me about this business' },
+    ];
+    qs.forEach(q => {
+      const b = document.createElement('button');
+      b.className = 'qbtn';
+      b.innerHTML = `${q.icon} ${q.text}`;
+      b.onclick = () => quickSend(q.text);
+      qb.appendChild(b);
+    });
+
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('chat-screen').style.display = 'block';
+    document.getElementById('chat-box').innerHTML = '';
+    
+    applyVisibility();
+    
+    addMessage(`Hi there! I'm Alex 👋 Happy to help you explore what's possible with **${biz.name}**. What's the main challenge your business is facing right now?`, false);
+  } catch (e) {
+    console.error("Launch Error:", e);
+    hideLoader();
+    document.getElementById('setup-screen').style.display = 'block';
+  }
 }
 
 function addMessage(text, isUser) {
@@ -391,14 +427,18 @@ function removeTyping() {
 }
 
 async function sendMessage() {
+  if (isProcessing) return;
   const input = document.getElementById('user-input');
   const text = input.value.trim();
   if (!text) return;
+  
+  isProcessing = true;
   input.value = '';
   addMessage(text, true);
   history.push({ role: 'user', content: text });
   addTyping();
   document.getElementById('send-btn').disabled = true;
+  
   try {
     const res = await fetch('/chat', {
       method: 'POST',
@@ -416,9 +456,11 @@ async function sendMessage() {
   } catch (err) {
     removeTyping();
     addMessage('Connection error — please try again.', false);
+  } finally {
+    isProcessing = false;
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
   }
-  document.getElementById('send-btn').disabled = false;
-  input.focus();
 }
 
 document.getElementById('user-input').addEventListener('keydown', e => {
@@ -432,63 +474,91 @@ function quickSend(text) {
 
 function resetBot() {
   if (!isSetupMode) return;
+  hideLoader();
   history = [];
   document.getElementById('chat-screen').style.display = 'none';
   document.getElementById('setup-screen').style.display = 'block';
   applyVisibility();
 }
 
-window.onload = applyVisibility;
-setTimeout(applyVisibility, 500);
-setTimeout(applyVisibility, 2000);
-
-const localConfig = localStorage.getItem('chatbotConfig');
-let hasAutoLaunched = false;
-if (localConfig) {
+// MAIN INITIALIZATION
+function initializeApp() {
+  console.log("Initializing App...");
+  
+  // 1. Check for Config/Auto-launch
+  let localConfig = null;
   try {
-    const config = JSON.parse(localConfig);
-    if (config.websiteUrl && config.businessName) {
-      document.getElementById('s-website').value = config.websiteUrl || '';
-      document.getElementById('s-name').value = config.businessName || '';
-      document.getElementById('s-type').value = config.type || '';
-      document.getElementById('s-contact').value = config.contact || '';
-      document.getElementById('s-price').value = config.price || '';
-      document.getElementById('s-extra').value = config.extra || '';
-      document.getElementById('s-location').value = config.location || '';
-      document.getElementById('s-hours').value = config.hours || '';
-      if (config.sheetUrl) biz.sheetUrl = config.sheetUrl;
-      
-      document.getElementById('setup-screen').style.display = 'none';
-      document.getElementById('chat-screen').style.display = 'block';
-      setTimeout(() => {
-        if (!hasAutoLaunched) {
-          launchBot();
-          hasAutoLaunched = true;
-        }
-      }, 500);
-    }
-  } catch (e) {}
-} else if (!isSetupMode) {
-  document.body.innerHTML = '<div style="color:#666; text-align:center; padding-top:100px; font-family:sans-serif;"><h3>Assistant is preparing...</h3><p>Please wait or refresh.</p></div>';
-}
+    localConfig = localStorage.getItem('chatbotConfig');
+  } catch (e) {
+    console.warn("LocalStorage access denied.");
+  }
 
-window.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
   const website = params.get('websiteUrl');
   const name = params.get('businessName');
   const sheet = params.get('sheetUrl');
+
+  let configToUse = null;
   if (website && name) {
-    document.getElementById('s-website').value = website;
-    document.getElementById('s-name').value = name;
-    if (sheet) biz.sheetUrl = sheet;
+    configToUse = { websiteUrl: website, businessName: name, sheetUrl: sheet };
+  } else if (localConfig) {
+    try {
+      configToUse = JSON.parse(localConfig);
+    } catch (e) {}
+  }
+
+  // 2. Launch or Show Setup
+  if (configToUse && configToUse.websiteUrl && configToUse.businessName && !isSetupMode) {
+    console.log("Auto-launching with config...");
+    document.getElementById('s-website').value = configToUse.websiteUrl || '';
+    document.getElementById('s-name').value = configToUse.businessName || '';
+    document.getElementById('s-type').value = configToUse.type || '';
+    document.getElementById('s-contact').value = configToUse.contact || '';
+    document.getElementById('s-price').value = configToUse.price || '';
+    document.getElementById('s-extra').value = configToUse.extra || '';
+    document.getElementById('s-location').value = configToUse.location || '';
+    document.getElementById('s-hours').value = configToUse.hours || '';
+    if (configToUse.sheetUrl) biz.sheetUrl = configToUse.sheetUrl;
+    
     setTimeout(() => {
       if (!hasAutoLaunched) {
         launchBot();
         hasAutoLaunched = true;
       }
-    }, 500);
+    }, 200);
+  } else {
+    console.log("No config found, showing setup screen.");
+    document.getElementById('setup-screen').style.setProperty('display', 'block', 'important');
+    applyVisibility();
+    hideLoader();
   }
-});
+}
+
+window.onload = () => {
+  initializeApp();
+};
+
+// Periodic Syncs
+setTimeout(applyVisibility, 500);
+setTimeout(applyVisibility, 1500);
+
+// IRON-CLAD Safety Timeout (Reduced to 3s)
+setTimeout(() => {
+  hideLoader();
+  const chat = document.getElementById('chat-screen');
+  const setup = document.getElementById('setup-screen');
+  if (window.getComputedStyle(chat).display === 'none' && window.getComputedStyle(setup).display === 'none') {
+    setup.style.setProperty('display', 'block', 'important');
+  }
+}, 3000);
+
+// Global Error Catch to prevent hangs
+window.onerror = function(msg, url, line) {
+  console.error("Critical Error:", msg, "at", url, ":", line);
+  hideLoader();
+  document.getElementById('setup-screen').style.display = 'block';
+  return false;
+};
 </script>
 </body>
 </html>

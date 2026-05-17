@@ -1,19 +1,10 @@
 @echo off
+echo 🚀 Preparing to deploy Alex v3.0 to Production...
+echo ----------------------------------------------------
 echo.
-echo ================================
-echo   SmartOffice AI - Auto Deploy
-echo ================================
+:: Forces vercel to deploy directly to your production domain
+vercel --prod --force
 echo.
-
-cd /d "C:\Users\Rasha\chatbot-demo"
-
-echo Installing packages...
-npm install
-
-echo.
-echo Deploying to Vercel...
-vercel --prod
-
-echo.
-echo Done! Your bot is live.
+echo ----------------------------------------------------
+echo ✅ Deployment complete! Press any key to exit.
 pause
